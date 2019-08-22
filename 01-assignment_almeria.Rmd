@@ -1,0 +1,78 @@
+---
+title: "01-assignment_almeria.Rmd"
+author: "Chris Almeria"
+date: "8/21/2019"
+output: pdf_document: default 
+        
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+print("Hello, World")
+sc
+View(sc)
+## Assignment one Question one:
+## Average earnings for the most selective schools
+sc%>%filter(adm_rate<.1)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+
+## Average earnings for the least selective schools, keeping with the same number of top schools (6), hence the delination for .3931 - SUNY New Paltz
+sc%>%filter(adm_rate>.3931)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+
+## Top schools mean earners $53,500; least selective schools mean earners at $37,320
+
+53500-37320
+
+## Differnece of $16K!
+
+```
+
+```{r filter_select_arrange}
+
+## Question two
+## Size of colleges with High SAT scores: Are they larger or smaller then schools with low SAT scores?
+
+## Starting with the high SAT score schools
+sc%>%filter(sat_avg>1460)%>%select(instnm,sat_avg, ugds)%>%
+  arrange(ugds)
+
+## High SAT score range size of undergrad classes: 951,4218,5029,5258,6436,7181
+951+4218+5029+5258+6436+7181
+
+## This result divided by six:
+29073 / 6
+
+## mean class size of 4,845 for High SAT scores
+
+## And now with the lower SAT score schools
+sc%>%filter(sat_avg<850)%>%select(instnm,sat_avg, ugds)%>%
+  arrange(ugds)
+
+## Low SAT score range size of undergrad classes: 2020,2326,2350,2398,3624,6328
+2020+2326+2350+2398+3624+6328
+## This result dived by 6
+19046/6
+
+## mean class size of 3,174
+## Thus, the colleges with higher SAT scores tend to be LARGER then schools with lower SAT scores.
+
+```
+
+```{r}
+ ## Question number three - Plotting cost and debt
+ggplot(data = sc) + 
+  geom_point(mapping = aes(x = costt4_a, y = debt_mdn)) +
+  geom_smooth(mapping = aes(x = costt4_a, y = debt_mdn))
+## As you move the right for the higher cost schools, debt increases...yet, the same high debt marks can be found at schools that don't cost as much.
+## Given our previous learning of non-credit mandatory courses like math improvement classes, this inst surprising for the "lower cost" schools.
+
+```
+
+```{r}
+## Question number four - cost and debt by control of the insitution
+ggplot(data = sc)+
+  geom_point(mapping = aes(x = costt4_a, y = debt_mdn, color = control))
+```
+
