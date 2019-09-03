@@ -1,0 +1,180 @@
+---
+title: "Chris_Almeria_assignment02"
+author: "Chris Almeria"
+date: "9/3/2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+# Direct upload to Github
+# Analyzing Data: Conditional Means for home ownership rates
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plotly)
+library(Metrics)
+```
+
+## Dataset of U.S. Counties 
+
+```{r data}
+load("pd.Rdata")
+```
+
+## Full explination of data parameters for this data set
+
+```{r explain_date}
+
+## Full explanation of data in codebook
+load("pd_lab_explain.Rdata")
+
+#or use View
+View(lab_explain)
+```
+
+## Rank order counties by home ownership rates for easier visual repesentation. 
+```{r simple_plots}
+## Creating a rank variable for home Ownership rates, by way of the mutate command
+pd<-pd%>%mutate(homeown_rate=rank(homeown_rate))
+```
+
+```{r}
+## Plot by rank
+gg<-ggplot(data=pd, aes(x=homeown_rate,
+                         y=median_hh_inc,
+                         text=county))
+```
+
+# Scatterplot
+```{r}
+## Add Points
+gg<-gg+geom_point(alpha=.5,size=.5)
+```
+
+# Lables
+```{r}
+## Add labels
+gg<-gg+xlab("Rank")+ylab("Median Household Income")
+```
+
+
+# Naming Convention, gg
+```{r}
+gg
+```
+# Making this plot interactive to mouse over and view college grad rates and homeownership at the same time by way of the ggplotly command.
+
+```{r}
+# Make Interactive plot
+gg_p<-ggplotly(gg)
+
+gg_p
+```
+
+## Dependent Variable: Home Ownership Rates (homeown_rate)
+
+```{r}
+
+## Question 1
+## Calculate mean of the outcome, Home Ownership Rates by way of the summarize pipe function/summarize command
+pd%>%summarize(mean_homeown_rate=mean(homeown_rate,na.rm=TRUE))
+
+## Question 2
+## Using this mean from question one as a predictor, by way of the mutate command.
+pd<-pd%>%mutate(mean_homeown_rate=mean(homeown_rate,na.rm=TRUE))
+```
+## Plotting the above commands visually, with Homeownership rates on the x axis, College graduation rates on the Y axis
+## Made a mistake here by mutating this command to early as the median value for Homeownership Nation wide is the only one that shows (1544.5)?
+
+```{r}
+##Plotting
+gg<-ggplot(data=pd,aes(y=median_hh_inc,x=homeown_rate,color="Actual"))
+gg<-gg+geom_point(alpha=.5,size=.5)
+gg<-gg+geom_point(aes(y=median_hh_inc,x=homeown_rate,
+                  color="Predicted: Unconditional Mean"),
+                  size=.5)
+gg<-gg+xlab("Homeownership Rate Median")+ylab("Median Household Income")
+gg<-gg+scale_color_manual(name="Type",
+                          values=c("Actual"="black",
+                          "Predicted: Unconditional Mean"="blue")
+                          )
+gg<-gg+theme(legend.position="bottom")
+
+gg
+
+##Save for later
+
+gg2<-gg
+
+```
+## Question 3
+## Calculating a summary measure of the error of the home ownership rate figure and storing it in the value e1
+```{r error_terms}
+pd<-pd%>%mutate(e1=homeown_rate-mean_homeown_rate)
+```
+## Question 4
+## Calculating the mean of our predictor variable, staying with median household incomes
+## Using the Root Mean Squared Error function to see how far 'off' this measure is: 891.4178
+```{r}
+## RMSE
+
+rmse_uncond_mean<-rmse(pd$homeown_rate,pd$mean_homeown_rate)
+
+rmse_uncond_mean
+```
+## Question 5
+## Using these Condtional means as a predictor 
+## Adapted code to use the median household income level as a basis to look at homeownership rates - thought being the higher HH income rates, we should expect to see a higher rate of homeownership.
+```{r condtl_mean_single}
+##Condtional Average across a single variable
+
+## Creating a new variable for quartiles of median household incomes by wy of the mutate command
+pd<-pd%>%mutate(median_hh_level=ntile(median_hh_inc,4))
+
+pd%>%select(county,median_hh_inc,median_hh_level)%>%View()
+
+table(pd$median_hh_level)
+
+##pd<-pd%>%mutate(median_hh_level=ntile(median_hh_inc,4))
+
+pd<-pd%>%group_by(median_hh_level)%>% ## Group by predictor
+  ##Calculate mean at each level of predictor
+  mutate(pred_median_hh_inc=mean(percapinc.2010))%>%
+  ## Ungroup
+  ungroup()%>% 
+  #Rank by prediction, with ties sorted randomly
+  mutate(pred_median_hh_inc_rank=rank(pred_median_hh_inc,ties.method="random"))
+
+pd%>%select(county,median_hh_inc,median_hh_level,pred_median_hh_inc)%>%View()
+ 
+```
+## Graphing these results out:
+```{r}
+pd%>%group_by(median_hh_level)%>% ## Group by predictor
+  ##Calculate mean at each level of predictor
+  summarise(pred_median_hh_inc=mean(percapinc.2010))
+
+gg<-ggplot(data=pd,aes(x=pred_median_hh_inc,y=percapinc.2010,color="Actual"))
+gg<-gg+geom_point(alpha=.5,size=.5)
+gg<-gg+geom_point(aes(x=pred_median_hh_inc_rank,y=pred_median_hh_inc,color="Predicted:Conditional Mean, 1 var"))
+gg<-gg+ scale_color_manual("Type",values=c("Predicted:Conditional Mean, 1 var"="red","Actual"="black"))
+gg<-gg+theme(legend.position="bottom")
+gg<-gg+xlab("Rank")+ylab("Per Capita Income, 2010")
+gg
+
+##Save for later
+gg3<-gg
+
+```
+# Question 6
+## Updating RMSE now that we are using an conditional vs an uncondtional mean and a summary of the error in these predictions. 
+```{r}
+rmse_cond_mean_one<-rmse(pd$median_hh_level,pd$pred_median_hh_inc)
+rmse_cond_mean_one
+```
+
+## Overall, once I split the median income into quadrants, the outliers with high median incomes (King County, WA - Seattle & Bellvue; Los Angeles County, CA - LA and Hollywood, were 'constratined' by the upper quartiles max of $40,990, but such is to be expected when hanressing such a vast array of numbers)
+## I chose to go with median household income on the basis of a higher income would allow people to own thier won homes vs rent, as this would also dovetial with college grad rates, since higher wages are typically earned by college grads
